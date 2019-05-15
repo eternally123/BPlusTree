@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <unistd.h>
+#include <mutex>
 
 
 template<typename Tkey, typename Tdata>
@@ -15,9 +16,12 @@ protected:
     int degree;
     Node<Tkey, Tdata> *pTreeRoot;
     Node<Tkey, Tdata> *pListStart;
+    std::mutex *mut;
 
 public://构造函数与析构函数
     BPlusTree(int degree);
+
+    ~BPlusTree();
 
 public://get、set方法
     Node<Tkey, Tdata> *getPTreeRoot();
@@ -26,13 +30,13 @@ public://get、set方法
 
 public://主要功能：增删改查
     //根据key搜索，返回叶子节点，若无返回空
-    Node<Tkey, Tdata> *search(Tkey key);
+    Node<Tkey, Tdata> *search(Tkey key);//f
 
     //插入key和data
-    bool insert(Tkey key, Tdata data);
+    bool insert(Tkey key, Tdata data);//f
 
     //删除key
-    bool remove(Tkey key);
+    bool remove(Tkey key);//f
 
     //打印树信息
     void printTree();
@@ -82,6 +86,12 @@ BPlusTree<Tkey, Tdata>::BPlusTree(int degree) {
     this->degree = degree;
     pTreeRoot = NULL;
     pListStart = NULL;
+    mut = new std::mutex();
+}
+
+template<typename Tkey, typename Tdata>
+BPlusTree<Tkey, Tdata>::~BPlusTree() {
+    delete mut;
 }
 
 template<typename Tkey, typename Tdata>
@@ -96,7 +106,10 @@ Node<Tkey, Tdata> *BPlusTree<Tkey, Tdata>::getPListStart() {
 
 template<typename Tkey, typename Tdata>
 Node<Tkey, Tdata> *BPlusTree<Tkey, Tdata>::search(Tkey key) {
-    return search(key, pTreeRoot);
+//    mut->lock();
+    Node<Tkey, Tdata> *pResult = search(key, pTreeRoot);
+//    mut->unlock();
+    return pResult;
 }
 
 template<typename Tkey, typename Tdata>
@@ -108,17 +121,20 @@ bool BPlusTree<Tkey, Tdata>::insert(Tkey key, Tdata data) {
      *      2.2、若插入后超过了叶子节点key值存储范围：
      *              节点分裂：
      */
+    mut->lock();
     if (pTreeRoot == NULL) {//树为空
         Node<Tkey, Tdata> *pNode = new Node<Tkey, Tdata>(true, degree);
         pNode->insertInLeafNode(key, data);
         pTreeRoot = pNode;
         pListStart = pNode;
+        mut->unlock();
         return true;
     } else {//树非空,先查找在哪个叶子节点插入
         Node<Tkey, Tdata> *pNode = searchDonNotCareIfExist(key, pTreeRoot);
         pNode->insertInLeafNode(key, data);
         if (pNode->ifNeedToSplitNode() == false) {
             //插入后无需分裂
+            mut->unlock();
             return true;
         } else {
             //插入后需要分裂,采用右分裂 pParent是父节点。nsp有value和右子树。pNode是左子树
@@ -133,6 +149,7 @@ bool BPlusTree<Tkey, Tdata>::insert(Tkey key, Tdata data) {
             //递归调用在索引节点插入
             bool result = insertInIndexNode(pNode->getPParent(), nsp->getKey(), pNode, pNewNode);
             delete nsp;
+            mut->unlock();
             return result;
         }
     }
@@ -148,8 +165,10 @@ bool BPlusTree<Tkey, Tdata>::remove(Tkey key) {
      *  3.2合并兄弟，更改，删父节点，返回
      */
     using namespace std;
+    mut->lock();
     if (search(key) == NULL) {
         std::cout << "key不存在:" << key << std::endl;
+        mut->unlock();
         return false;
     } else {
         //key存在时,删除数据
@@ -157,11 +176,13 @@ bool BPlusTree<Tkey, Tdata>::remove(Tkey key) {
         pNode->deleteInLeafNodeByKey(key);
         if (pNode->ifNeedToMergeOrBorrow() == false) {
             //如果删除后符合树定义，结束
+            mut->unlock();
             return true;
         } else {
             //可能需要借或者合并
             if (pNode == pTreeRoot) {
                 //根节点，无需合并或借
+                mut->unlock();
                 return true;
             } else {
                 //非根节点，需要借或合并
@@ -175,34 +196,17 @@ bool BPlusTree<Tkey, Tdata>::remove(Tkey key) {
                     pNode->insertInLeafNode(nsp->getKey(), nsp->getData());
                     pNode->getPParent()->updateKeyByIndex(parentKeyIndexToUpdate, nsp->getKey());
                     delete nsp;
+                    mut->unlock();
                     return true;
                 } else if ((pRightNode != NULL) && (pRightNode->ifCanLendKeyToOtherLeafNode() == true)) {
                     //向右兄弟借
-
-
-//                    if (key == 2.6) {
-//                        cout << "key 2.6" << endl;
-//                        pNode->print();
-//                        pNode->getPParent()->print();
-//                        pRightNode->print();
-//                        pRightNode->getPParent()->print();
-//                    }
-
-
                     int parentKeyIndexToUpdate = pNode->getPChildrenIndexInParent();
                     KeyUnit<Tkey, Tdata> *nsp = pRightNode->lendTheMinKeyInLeafNode();
                     //此节点插入
                     pNode->insertInLeafNode(nsp->getKey(), nsp->getData());
                     pNode->getPParent()->updateKeyByIndex(parentKeyIndexToUpdate, pRightNode->getPKey()[0]);
-//                    if(key==2.6){
-//                        pNode->print();
-//                        pRightNode->print();
-//                        pNode->getPParent()->print();
-//                        pRightNode->getPParent()->print();
-//                    }
-
-
                     delete nsp;
+                    mut->unlock();
                     return true;
                 } else {
                     //合并
@@ -222,10 +226,13 @@ bool BPlusTree<Tkey, Tdata>::remove(Tkey key) {
                             pTreeRoot = pNode;
                             delete pNode->getPParent();
                             pNode->setPParent(NULL);
+                            mut->unlock();
                             return true;
                         } else {
                             //父节点还有多个元素，根在父节点及上
-                            return deleteInIndexNode(index, pNode->getPParent(), pNode);
+                            bool result = deleteInIndexNode(index, pNode->getPParent(), pNode);
+                            mut->unlock();
+                            return result;
                         }
                     } else {
                         //和右子树merge，先更改链表
@@ -240,10 +247,13 @@ bool BPlusTree<Tkey, Tdata>::remove(Tkey key) {
                             pTreeRoot = pNode;
                             delete pNode->getPParent();
                             pNode->setPParent(NULL);
+                            mut->unlock();
                             return true;
                         } else {
                             //父节点还有多个元素，根在父节点及上
-                            return deleteInIndexNode(index, pNode->getPParent(), pNode);
+                            bool result = deleteInIndexNode(index, pNode->getPParent(), pNode);
+                            mut->unlock();
+                            return result;
                         }
                     }
                 }

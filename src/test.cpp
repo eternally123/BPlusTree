@@ -1,5 +1,6 @@
 #include "test.h"
 
+
 void testInsertAndDelete(int testSet) {
     using namespace std;
 
@@ -51,4 +52,37 @@ void testUnSerialization() {
     cout << endl << endl;
 
     bp->printList();
+}
+
+
+void testMutex() {
+    using namespace std;
+    BPlusTree<double, double> *pBp = new BPlusTree<double, double>(5);
+    mutex *mut=new mutex;
+
+
+    thread t1(testMutexThreadOne, pBp, mut);
+    thread t2(testMutexThreadTwo, pBp, mut);
+
+    t1.join();
+    t2.join();
+
+    delete pBp;
+    delete mut;
+
+}
+
+
+
+void testMutexThreadOne(BPlusTree<double,double> *pBp, std::mutex *mut) {
+
+
+
+
+}
+
+
+void testMutexThreadTwo(BPlusTree<double,double> *pBp, std::mutex *mut) {
+
+
 }
