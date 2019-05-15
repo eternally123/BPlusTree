@@ -1,8 +1,6 @@
 #include "utils.h"
 
-#include <algorithm>
-#include <vector>
-#include <iostream>
+
 
 double *generateRandomDoubuleNumber(int num, double start, double gap) {
     using namespace std;
@@ -19,3 +17,4 @@ double *generateRandomDoubuleNumber(int num, double start, double gap) {
     }
     return arr;
 }
+

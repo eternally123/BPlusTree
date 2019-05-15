@@ -1,10 +1,10 @@
 #include "test.h"
 
-void testInsertAndDelete(int testSet){
+void testInsertAndDelete(int testSet) {
     using namespace std;
 
     int number = testSet;
-    double *arr = generateRandomDoubuleNumber(number,10,0.1);
+    double *arr = generateRandomDoubuleNumber(number, 10, 0.1);
     BPlusTree<double, double> *bp = new BPlusTree<double, double>(5);
     for (int i = 0; i < testSet; ++i) {
         bp->insert(arr[i], arr[i]);
@@ -18,5 +18,37 @@ void testInsertAndDelete(int testSet){
     }
     delete[] arr;
     bp->printTree();
+    bp->printList();
+}
+
+void testSerialization(int testSet) {
+    using namespace std;
+    char *filePath = "/home/shiliangw/user/code/BPlusTree/bin/serializationData";
+
+    int number = testSet;
+    double *arr = generateRandomDoubuleNumber(number, 10, 0.1);
+    BPlusTree<double, double> *bp = new BPlusTree<double, double>(5);
+    for (int i = 0; i < testSet; ++i) {
+        bp->insert(arr[i], arr[i]);
+    }
+    bp->printTree();
+    bp->serialization(filePath);
+
+    delete[] arr;
+}
+
+void testUnSerialization() {
+    using namespace std;
+    char *filePath = "/home/shiliangw/user/code/BPlusTree/bin/serializationData";
+
+    BPlusTree<double, double> *bp = new BPlusTree<double, double>(5);
+    bp->unSerialization(filePath);
+    cout << endl << endl;
+    bp->printTree();
+    cout << endl << endl;
+    cout << endl << endl;
+    cout << endl << endl;
+    cout << endl << endl;
+
     bp->printList();
 }

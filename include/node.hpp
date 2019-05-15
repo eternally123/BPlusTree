@@ -50,7 +50,7 @@ class Node {
     //分裂时左少右多
 
     //keyNum个数的范围[maxKeyNum/2 maxKeyNum]
-protected:
+public:
     bool isLeafNode;
     int maxKeyNum;
     int currentKeyNum;
@@ -79,6 +79,8 @@ public://get、set方法
     int getMaxKeyNum();
 
     int getCurrentKeyNum();
+
+    int getDegree();
 
     Tkey *getPKey();
 
@@ -423,6 +425,11 @@ void Node<Tkey, Tdata>::print() {
 template<typename Tkey, typename Tdata>
 int Node<Tkey, Tdata>::getCurrentKeyNum() {
     return currentKeyNum;
+}
+
+template<typename Tkey, typename Tdata>
+int Node<Tkey, Tdata>::getDegree(){
+    return degree;
 }
 
 template<typename Tkey, typename Tdata>

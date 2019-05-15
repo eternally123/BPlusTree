@@ -1,7 +1,10 @@
 #ifndef BPLUSTREE_BPLUSTREE_H
 #define BPLUSTREE_BPLUSTREE_H
 
-#include "node.h"
+#include "node.hpp"
+
+#include <vector>
+#include <unistd.h>
 
 
 template<typename Tkey, typename Tdata>
@@ -21,7 +24,7 @@ public://get、set方法
 
     Node<Tkey, Tdata> *getPListStart();
 
-public://主要功能
+public://主要功能：增删改查
     //根据key搜索，返回叶子节点，若无返回空
     Node<Tkey, Tdata> *search(Tkey key);
 
@@ -42,7 +45,13 @@ public://主要功能
     bool checkPParent(Node<Tkey, Tdata> *pRoot);
 
     bool ifCanFindAllData();
-//    bool checkKey();
+
+public:
+    //序列化到磁盘
+    bool serialization(char *filePath);
+
+    //从磁盘反序列化
+    bool unSerialization(char *filePath);
 
 protected://内部方法
     Node<Tkey, Tdata> *search(Tkey key, Node<Tkey, Tdata> *pRoot);
@@ -325,36 +334,181 @@ bool BPlusTree<Tkey, Tdata>::ifCanFindAllData() {
     return true;
 }
 
+template<typename Tkey, typename Tdata>
+bool BPlusTree<Tkey, Tdata>::serialization(char *filePath) {
+    /*
+     *层次遍历写入文件
+     */
+    if (pTreeRoot == NULL) {
+        //树空，无需序列化
+        return true;
+    } else {
+        //序列化
+        FILE *fp;
+        fp = std::fopen(filePath, "w");
+        if (fp == NULL) {
+            //打开文件失败
+            return false;
+        } else {
+            //打开文件成功，写入数据
+            using namespace std;
 
-//template<typename Tkey, typename Tdata>
-//bool BPlusTree<Tkey, Tdata>::checkKey() {
-//    //检查pRoot的孩子看其key是否正确
-//    return checkKey(pTreeRoot, -1, -1);
-//}
+            bool isLeafNode;
+            int degree;
+            int maxKeyNum;
+            int currentKeyNum;
 
-//template<typename Tkey, typename Tdata>
-//bool BPlusTree<Tkey, Tdata>::checkKey(Node<Tkey, Tdata> *pRoot, Tkey min, Tkey max) {
-//    bool result = true;
-//
-//
-//    for (int i = 0; i < pRoot->getCurrentKeyNum() + 1; ++i) {
-//        if (i == 0) {
-//            result = checkKey(pRoot->getPChildren()[i], min, pRoot->getPKey()[i + 1]);
-//            if (result == false)
-//                return false;
-//        } else if (i == pRoot->getCurrentKeyNum()) {
-//            result = checkKey(pRoot->getPChildren()[i], pRoot->getPKey()[i], max);
-//            if (result == false)
-//                return false;
-//        } else {
-//            if (checkKey(pRoot->getPChildren()[i], pRoot->getPKey()[i], pRoot->getPKey()[i + 1]) == false) {
-//                return false;
+            /*
+             * 层次遍历序列化
+             */
+            vector<Node<Tkey, Tdata> *> *v = new vector<Node<Tkey, Tdata> *>();
+            Node<Tkey, Tdata> *pNodeTempt;
+            Node<Tkey, Tdata> *pChildNodeTempt;
+
+            v->push_back(pTreeRoot);
+            while (v->empty() == false) {
+                pNodeTempt = v->at(0);
+                v->erase(v->begin());
+                //写入pNodeTempt
+                {
+//                    cout<<"开始序列化节点:"<<endl;
+//                    sleep(1);
+//                    pNodeTempt->print();
+
+                    isLeafNode = pNodeTempt->getIsLeaf();
+                    degree = pNodeTempt->getDegree();
+                    maxKeyNum = pNodeTempt->getMaxKeyNum();
+                    currentKeyNum = pNodeTempt->getCurrentKeyNum();
+
+                    fwrite(&isLeafNode, sizeof(isLeafNode), 1, fp);
+                    fwrite(&degree, sizeof(degree), 1, fp);
+                    fwrite(&maxKeyNum, sizeof(maxKeyNum), 1, fp);
+                    fwrite(&currentKeyNum, sizeof(currentKeyNum), 1, fp);
+                    fwrite(pNodeTempt->getPKey(), sizeof(Tkey), pNodeTempt->getCurrentKeyNum(), fp);
+                    if (pNodeTempt->getIsLeaf() == true) {
+                        //叶子节点
+                        fwrite(pNodeTempt->getPData(), sizeof(Tdata), pNodeTempt->getCurrentKeyNum(), fp);
+                    }
+                }
+                if (pNodeTempt->getIsLeaf() == false) {
+                    //非叶子节点，有孩子，孩子入队列
+                    for (int i = 0; i < pNodeTempt->getCurrentKeyNum() + 1; ++i) {
+                        pChildNodeTempt = pNodeTempt->getPChildren()[i];
+                        //孩子入vector
+                        v->push_back(pChildNodeTempt);
+                    }
+                }
+            }
+            fclose(fp);
+            return true;
+        }
+    }
+}
+
+template<typename Tkey, typename Tdata>
+bool BPlusTree<Tkey, Tdata>::unSerialization(char *filePath) {
+    /*
+    *层次遍历读出文件
+    */
+    //反序列化
+    FILE *fp;
+    fp = std::fopen(filePath, "r");
+    if (fp == NULL) {
+        //打开文件失败
+        return false;
+    } else {
+        //打开文件成功，读出数据
+        using namespace std;
+
+        bool isLeafNode;
+        int degree;
+        int maxKeyNum;
+        int currentKeyNum;
+//        double tmpt;
+//        Tkey *pKey = new Tkey[this->degree];
+//        Tdata *pData = new Tdata[this->degree];
+
+        /*
+         * 层次遍历反序列化
+         */
+        vector<Node<Tkey, Tdata> *> *v = new vector<Node<Tkey, Tdata> *>();
+        Node<Tkey, Tdata> *pNodeTempt;
+        Node<Tkey, Tdata> *pParentNodeTempt;
+        Node<Tkey, Tdata> *pPreNodeTempt;
+
+        {//读出根节点
+            fread(&isLeafNode, sizeof(isLeafNode), 1, fp);
+            fread(&degree, sizeof(degree), 1, fp);
+            fread(&maxKeyNum, sizeof(maxKeyNum), 1, fp);
+            fread(&currentKeyNum, sizeof(currentKeyNum), 1, fp);
+
+            pNodeTempt = new Node<Tkey, Tdata>(isLeafNode, degree);
+            pTreeRoot = pNodeTempt;
+            pNodeTempt->currentKeyNum = currentKeyNum;
+
+            fread(pNodeTempt->pKey, sizeof(Tkey), currentKeyNum, fp);
+
+            if (pNodeTempt->getIsLeaf() == true) {
+                //叶子节点
+                fread(pNodeTempt->pData, sizeof(Tdata), pNodeTempt->getCurrentKeyNum(), fp);
+            }
+            v->push_back(pNodeTempt);
+        }
+        while (v->empty() == false) {
+            pParentNodeTempt = v->at(0);//父节点
+            cout << endl;
+            v->erase(v->begin());
+//            cout << "当前弹出队列的是:" << endl;
+//            pParentNodeTempt->print();
+//            cout << "此时队列中的元素:" << endl;
+//            for (int i = 0; i < v->size(); ++i) {
+//                v->at(i)->print();
 //            }
-//        }
-//    }
-//
-//
-//}
+//            cout << "队列元素列举完:" << endl;
+
+            if (pParentNodeTempt->isLeafNode == false) {
+                //非叶子节点，有孩子
+                for (int i = 0; i < pParentNodeTempt->getCurrentKeyNum() + 1; ++i) {
+                    {//读出节点数据到pNodeTempt中
+                        fread(&isLeafNode, sizeof(isLeafNode), 1, fp);
+                        fread(&degree, sizeof(degree), 1, fp);
+                        fread(&maxKeyNum, sizeof(maxKeyNum), 1, fp);
+                        fread(&currentKeyNum, sizeof(currentKeyNum), 1, fp);
+
+                        pNodeTempt = new Node<Tkey, Tdata>(isLeafNode, degree);//isLeaf degree maxKeyNum
+                        pNodeTempt->currentKeyNum = currentKeyNum;//currentKeyNum
+                        fread(pNodeTempt->pKey, sizeof(Tkey), currentKeyNum, fp);
+                        if (pNodeTempt->getIsLeaf() == true) {
+                            //叶子节点
+                            fread(pNodeTempt->pData, sizeof(Tdata), pNodeTempt->getCurrentKeyNum(), fp);//data
+                        }
+                    }
+                    pParentNodeTempt->pChildren[i] = pNodeTempt;
+                    pNodeTempt->setPParent(pParentNodeTempt);
+                    v->push_back(pNodeTempt);
+                }
+            } else if (pParentNodeTempt->isLeafNode == true) {
+                //无孩子，一定是叶子节点
+                if (pListStart == NULL) {
+                    //链表根节点
+                    pListStart = pParentNodeTempt;
+                    pParentNodeTempt->setPPre(NULL);
+                    pParentNodeTempt->setPNext(NULL);
+                    pPreNodeTempt = pParentNodeTempt;
+                } else {
+                    pPreNodeTempt->setPNext(pParentNodeTempt);
+                    pParentNodeTempt->setPNext(NULL);
+                    pParentNodeTempt->setPPre(pPreNodeTempt);
+                    pPreNodeTempt = pParentNodeTempt;
+                }
+            } else {
+                cout << "unSerialization():error" << endl;
+            }
+        }
+        fclose(fp);
+        return true;
+    }
+}
 
 
 template<typename Tkey, typename Tdata>
