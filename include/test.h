@@ -11,16 +11,18 @@
 #include <iostream>
 #include <mutex>
 
-void testInsertAndDelete(int testSet);
+void testInsert(int testSetNum);
 
-void testSerialization(int testSet);
+void testDelete(int testSetNum);
+
+void testSerialization(int testSetNum);
 
 void testUnSerialization();
 
 void testMutex();
 
-void testMutexThreadOne(BPlusTree<double, double> *pBp, std::mutex *mut);
+void testNewAndDelete(int testSetNum);
 
-void testMutexThreadTwo(BPlusTree<double, double> *pBp, std::mutex *mut);
+
 
 #endif //BPLUSTREE_TEST_H

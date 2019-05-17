@@ -46,8 +46,10 @@ public://主要功能：增删改查
 
     void printList();
 
+    //查看父节点是否正确
     bool checkPParent(Node<Tkey, Tdata> *pRoot);
 
+    //查看是否能找到所有数据
     bool ifCanFindAllData();
 
 public:
@@ -68,6 +70,8 @@ protected://内部方法
     bool deleteInIndexNode(int index, Node<Tkey, Tdata> *pIndexNode, Node<Tkey, Tdata> *pRetainChildren);
 
     bool updateChildrenPParentofPIndexNode(Node<Tkey, Tdata> *pIndexNode);
+
+    bool deleteSubTree(Node<Tkey, Tdata> *pNode);
 
 //    bool checkKey(Node<Tkey, Tdata> *pRoot, Tkey min, Tkey max);
 };
@@ -92,6 +96,22 @@ BPlusTree<Tkey, Tdata>::BPlusTree(int degree) {
 template<typename Tkey, typename Tdata>
 BPlusTree<Tkey, Tdata>::~BPlusTree() {
     delete mut;
+    if (pTreeRoot == NULL) {
+        //空树
+        return;
+    } else {
+        if (pTreeRoot->getIsLeaf() == true) {
+            //无孩子
+            delete pTreeRoot;
+            return;
+        } else {
+            //有孩子
+            for (int i = 0; i < pTreeRoot->getCurrentKeyNum() + 1; ++i) {
+                deleteSubTree(pTreeRoot->getPChildren()[i]);
+            }
+            delete pTreeRoot;
+        }
+    }
 }
 
 template<typename Tkey, typename Tdata>
@@ -131,6 +151,11 @@ bool BPlusTree<Tkey, Tdata>::insert(Tkey key, Tdata data) {
         return true;
     } else {//树非空,先查找在哪个叶子节点插入
         Node<Tkey, Tdata> *pNode = searchDonNotCareIfExist(key, pTreeRoot);
+        if (pNode->getKeyIndex(key) != -1) {
+            //已存在
+            mut->unlock();
+            return false;
+        }
         pNode->insertInLeafNode(key, data);
         if (pNode->ifNeedToSplitNode() == false) {
             //插入后无需分裂
@@ -384,7 +409,6 @@ bool BPlusTree<Tkey, Tdata>::serialization(char *filePath) {
 //                    cout<<"开始序列化节点:"<<endl;
 //                    sleep(1);
 //                    pNodeTempt->print();
-
                     isLeafNode = pNodeTempt->getIsLeaf();
                     degree = pNodeTempt->getDegree();
                     maxKeyNum = pNodeTempt->getMaxKeyNum();
@@ -434,9 +458,6 @@ bool BPlusTree<Tkey, Tdata>::unSerialization(char *filePath) {
         int degree;
         int maxKeyNum;
         int currentKeyNum;
-//        double tmpt;
-//        Tkey *pKey = new Tkey[this->degree];
-//        Tdata *pData = new Tdata[this->degree];
 
         /*
          * 层次遍历反序列化
@@ -454,29 +475,23 @@ bool BPlusTree<Tkey, Tdata>::unSerialization(char *filePath) {
 
             pNodeTempt = new Node<Tkey, Tdata>(isLeafNode, degree);
             pTreeRoot = pNodeTempt;
-            pNodeTempt->currentKeyNum = currentKeyNum;
+            pNodeTempt->setCurrentKeyNum(currentKeyNum);//set
 
-            fread(pNodeTempt->pKey, sizeof(Tkey), currentKeyNum, fp);
+            fread(pNodeTempt->getPKey(), sizeof(Tkey), currentKeyNum, fp);//set
 
             if (pNodeTempt->getIsLeaf() == true) {
                 //叶子节点
-                fread(pNodeTempt->pData, sizeof(Tdata), pNodeTempt->getCurrentKeyNum(), fp);
+                fread(pNodeTempt->getPData(), sizeof(Tdata), pNodeTempt->getCurrentKeyNum(), fp);//set
             }
             v->push_back(pNodeTempt);
         }
+
         while (v->empty() == false) {
             pParentNodeTempt = v->at(0);//父节点
-            cout << endl;
-            v->erase(v->begin());
-//            cout << "当前弹出队列的是:" << endl;
 //            pParentNodeTempt->print();
-//            cout << "此时队列中的元素:" << endl;
-//            for (int i = 0; i < v->size(); ++i) {
-//                v->at(i)->print();
-//            }
-//            cout << "队列元素列举完:" << endl;
-
-            if (pParentNodeTempt->isLeafNode == false) {
+//            cout << endl;
+            v->erase(v->begin());
+            if (pParentNodeTempt->getIsLeaf() == false) {
                 //非叶子节点，有孩子
                 for (int i = 0; i < pParentNodeTempt->getCurrentKeyNum() + 1; ++i) {
                     {//读出节点数据到pNodeTempt中
@@ -486,18 +501,22 @@ bool BPlusTree<Tkey, Tdata>::unSerialization(char *filePath) {
                         fread(&currentKeyNum, sizeof(currentKeyNum), 1, fp);
 
                         pNodeTempt = new Node<Tkey, Tdata>(isLeafNode, degree);//isLeaf degree maxKeyNum
-                        pNodeTempt->currentKeyNum = currentKeyNum;//currentKeyNum
-                        fread(pNodeTempt->pKey, sizeof(Tkey), currentKeyNum, fp);
+                        pNodeTempt->setCurrentKeyNum(currentKeyNum);//currentKeyNum
+                        fread(pNodeTempt->getPKey(), sizeof(Tkey), currentKeyNum, fp);
                         if (pNodeTempt->getIsLeaf() == true) {
                             //叶子节点
-                            fread(pNodeTempt->pData, sizeof(Tdata), pNodeTempt->getCurrentKeyNum(), fp);//data
+                            fread(pNodeTempt->getPData(), sizeof(Tdata), pNodeTempt->getCurrentKeyNum(), fp);//data
                         }
                     }
-                    pParentNodeTempt->pChildren[i] = pNodeTempt;
+
+//                    pParentNodeTempt->pChildren[i]=pNodeTempt;
+                    pParentNodeTempt->setPChild(pNodeTempt, i);
+
+
                     pNodeTempt->setPParent(pParentNodeTempt);
                     v->push_back(pNodeTempt);
                 }
-            } else if (pParentNodeTempt->isLeafNode == true) {
+            } else if (pParentNodeTempt->getIsLeaf() == true) {
                 //无孩子，一定是叶子节点
                 if (pListStart == NULL) {
                     //链表根节点
@@ -698,6 +717,22 @@ bool BPlusTree<Tkey, Tdata>::updateChildrenPParentofPIndexNode(Node<Tkey, Tdata>
         }
     }
     return true;
+}
+
+template<typename Tkey, typename Tdata>
+bool BPlusTree<Tkey, Tdata>::deleteSubTree(Node<Tkey, Tdata> *pNode) {
+    if (pTreeRoot->getIsLeaf() == true) {
+        //无孩子
+        delete pTreeRoot;
+        return true;
+    } else {
+        //有孩子
+        for (int i = 0; i < pTreeRoot->getCurrentKeyNum() + 1; ++i) {
+            deleteSubTree(pTreeRoot->getPChildren()[i]);
+        }
+        delete pTreeRoot;
+        return true;
+    }
 }
 
 #endif

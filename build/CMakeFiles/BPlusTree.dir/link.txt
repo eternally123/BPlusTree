@@ -1,1 +1,1 @@
-/usr/bin/c++     CMakeFiles/BPlusTree.dir/src/BPlusTreeTest.cpp.o CMakeFiles/BPlusTree.dir/src/main.cpp.o CMakeFiles/BPlusTree.dir/src/nodeTest.cpp.o CMakeFiles/BPlusTree.dir/src/test.cpp.o CMakeFiles/BPlusTree.dir/src/utils.cpp.o  -o ../bin/BPlusTree 
+/usr/bin/c++     CMakeFiles/BPlusTree.dir/src/BPlusTreeTest.cpp.o CMakeFiles/BPlusTree.dir/src/main.cpp.o CMakeFiles/BPlusTree.dir/src/nodeTest.cpp.o CMakeFiles/BPlusTree.dir/src/test.cpp.o CMakeFiles/BPlusTree.dir/src/utils.cpp.o  -o ../bin/BPlusTree -lpthread 

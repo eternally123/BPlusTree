@@ -50,7 +50,7 @@ class Node {
     //分裂时左少右多
 
     //keyNum个数的范围[maxKeyNum/2 maxKeyNum]
-public:
+protected:
     bool isLeafNode;
     int maxKeyNum;
     int currentKeyNum;
@@ -61,7 +61,6 @@ public:
     Node<Tkey, Tdata> *pParent;
     Node<Tkey, Tdata> *pNextLeafNode;
     Node<Tkey, Tdata> *pPreLeafNode;
-
 
 public://构造函数与析构函数
     Node(bool isLeaf, int degree);
@@ -94,11 +93,15 @@ public://get、set方法
 
     Node<Tkey, Tdata> *getPPreLeafNode();
 
+    bool setCurrentKeyNum(int currentKeyNum);
+
     bool setPParent(Node<Tkey, Tdata> *pParent);
 
     bool setPNext(Node<Tkey, Tdata> *pNext);
 
     bool setPPre(Node<Tkey, Tdata> *pPre);
+
+    bool setPChild(Node<Tkey,Tdata> *pChild,int index);
 
 public://主要功能
 
@@ -476,6 +479,12 @@ Node<Tkey, Tdata> *Node<Tkey, Tdata>::getPPreLeafNode() {
 }
 
 template<typename Tkey, typename Tdata>
+bool Node<Tkey, Tdata>::setCurrentKeyNum(int currentKeyNum) {
+    this->currentKeyNum=currentKeyNum;
+    return true;
+}
+
+template<typename Tkey, typename Tdata>
 Node<Tkey, Tdata> *Node<Tkey, Tdata>::getPParent() {
     return pParent;
 }
@@ -505,6 +514,12 @@ bool Node<Tkey, Tdata>::setPPre(Node<Tkey, Tdata> *pPre) {
     return true;
 }
 
+
+template<typename Tkey, typename Tdata>
+bool Node<Tkey, Tdata>::setPChild(Node<Tkey, Tdata> *pChild, int index) {
+    pChildren[index]=pChild;
+    return true;
+}
 
 template<typename Tkey, typename Tdata>
 int Node<Tkey, Tdata>::getKeyIndex(Tkey key) {
