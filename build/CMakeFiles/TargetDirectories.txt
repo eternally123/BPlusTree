@@ -1,3 +1,0 @@
-/home/shiliangw/user/code/BPlusTree/build/CMakeFiles/rebuild_cache.dir
-/home/shiliangw/user/code/BPlusTree/build/CMakeFiles/BPlusTree.dir
-/home/shiliangw/user/code/BPlusTree/build/CMakeFiles/edit_cache.dir
