@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 project(BPlusTree)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "-O2")
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)  #指明最后可执行文件位置在bin文件夹
 include_directories(${PROJECT_SOURCE_DIR}/include)  #指明头文件目录在include目录中

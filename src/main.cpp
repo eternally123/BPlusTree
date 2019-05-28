@@ -15,12 +15,12 @@ int main(int argc, char *argv[]) {
 
 
 
-//    testInsert(TEST_DATA_NUM);
+    testInsert(TEST_DATA_NUM);
 //    testDelete(TEST_DATA_NUM);
 //    testSerialization(TEST_DATA_NUM);
-//    testUnSerialization();
+//   testUnSerialization();
 //    testMutex();
-    testNewAndDelete(TEST_DATA_NUM);
+// testNewAndDelete(TEST_DATA_NUM);
     return 0;
 
 

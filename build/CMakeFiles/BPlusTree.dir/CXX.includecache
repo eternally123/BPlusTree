@@ -52,12 +52,6 @@ iostream
 cstdio
 -
 
-/home/shiliangw/user/code/BPlusTree/src/main.cpp
-test.h
-/home/shiliangw/user/code/BPlusTree/src/test.h
-climits
--
-
 /home/shiliangw/user/code/BPlusTree/src/test.cpp
 test.h
 /home/shiliangw/user/code/BPlusTree/src/test.h

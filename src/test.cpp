@@ -26,7 +26,7 @@ void testInsert(int testSetNum) {
 
 
     cout << "begin to insert" << endl;
-    BPlusTree<int, int> *bp = new BPlusTree<int, int>(50);
+    BPlusTree<int, int> *bp = new BPlusTree<int, int>(100);
     //插入数据并统计时间
     for (int i = 1; i <= testSetNum; ++i) {
         bp->insert(arr[i - 1], arr[i - 1]);
@@ -40,7 +40,12 @@ void testInsert(int testSetNum) {
         }
     }
     int totalCost = 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
-    cout << "total time of insert " << testSetNum / 1000000 << "W data " << totalCost << " us" << endl;
+    cout << "total time of insert " << testSetNum / 10000 << "W data " << totalCost << " us" << endl;
+
+    int totalNodeNum = bp->getNodeNum();
+    cout << "total node num:" << totalNodeNum << endl;
+
+
     //验证插入正确性
     cout << endl;
     bool ifCanFindAllData = true;
@@ -52,7 +57,8 @@ void testInsert(int testSetNum) {
     }
     cout << "if can find all data: " << ifCanFindAllData << endl;
 
-    delete arr;
+    delete bp;
+    delete[] arr;
 }
 
 void testDelete(int testSetNum) {
@@ -90,11 +96,8 @@ void testDelete(int testSetNum) {
     }
     int totalCost = 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     cout << "total time of delete " << testSetNum / 1000000 << "W data " << totalCost << " us" << endl;
-
-
+    delete bp;
     delete[] arr;
-    bp->printTree();
-    bp->printList();
 }
 
 
@@ -121,6 +124,7 @@ void testSerialization(int testSetNum) {
     gettimeofday(&end, NULL);
     timeUse = 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     cout << "finish serializing,time:" << timeUse << "us" << endl;
+    delete bp;
     delete[] arr;
 //    bp->printTree();
 }
@@ -137,6 +141,8 @@ void testUnSerialization() {
     gettimeofday(&end, NULL);
     timeUse = 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     cout << "finish unSerializing,time:" << timeUse << "us" << endl;
+
+    delete bp;
 }
 
 
